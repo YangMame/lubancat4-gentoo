@@ -1,0 +1,95 @@
+From eab46dd8a90789392aa026a8f707b66f41ea9aa5 Mon Sep 17 00:00:00 2001
+From: nyanmisaka <nst799610810@gmail.com>
+Date: Fri, 12 Jan 2024 15:25:45 +0800
+Subject: [PATCH 18/37] lavc/rkmppenc: add GRAY8/YUV400 monochroma support
+
+Signed-off-by: nyanmisaka <nst799610810@gmail.com>
+---
+ libavcodec/rkmppenc.c | 30 ++++++++++++++++--------------
+ libavcodec/rkmppenc.h |  1 +
+ 2 files changed, 17 insertions(+), 14 deletions(-)
+
+diff --git a/libavcodec/rkmppenc.c b/libavcodec/rkmppenc.c
+index f806116ca1..9ea6e0db43 100644
+--- a/libavcodec/rkmppenc.c
++++ b/libavcodec/rkmppenc.c
+@@ -39,6 +39,7 @@ static MppCodingType rkmpp_get_coding_type(AVCodecContext *avctx)
+ static MppFrameFormat rkmpp_get_mpp_fmt(enum AVPixelFormat pix_fmt)
+ {
+     switch (pix_fmt) {
++    case AV_PIX_FMT_GRAY8:   return MPP_FMT_YUV400;
+     case AV_PIX_FMT_YUV420P: return MPP_FMT_YUV420P;
+     case AV_PIX_FMT_YUV422P: return MPP_FMT_YUV422P;
+     case AV_PIX_FMT_YUV444P: return MPP_FMT_YUV444P;
+@@ -412,7 +413,8 @@ static int rkmpp_set_enc_cfg(AVCodecContext *avctx)
+         break;
+     case AV_CODEC_ID_HEVC:
+         {
+-            avctx->profile = FF_PROFILE_HEVC_MAIN;
++            avctx->profile = r->pix_fmt == AV_PIX_FMT_GRAY8
++                ? FF_PROFILE_HEVC_REXT : FF_PROFILE_HEVC_MAIN;
+             avctx->level = r->level;
+             mpp_enc_cfg_set_s32(cfg, "h265:profile", avctx->profile);
+             mpp_enc_cfg_set_s32(cfg, "h265:level", avctx->level);
+@@ -420,8 +422,8 @@ static int rkmpp_set_enc_cfg(AVCodecContext *avctx)
+             switch (avctx->profile) {
+             case FF_PROFILE_HEVC_MAIN:
+                 av_log(avctx, AV_LOG_VERBOSE, "Profile is set to MAIN\n"); break;
+-            case FF_PROFILE_HEVC_MAIN_10:
+-                av_log(avctx, AV_LOG_VERBOSE, "Profile is set to MAIN 10\n"); break;
++            case FF_PROFILE_HEVC_REXT:
++                av_log(avctx, AV_LOG_VERBOSE, "Profile is set to REXT\n"); break;
+             }
+             av_log(avctx, AV_LOG_VERBOSE, "Level is set to %d\n", avctx->level / 3);
+         }
+@@ -802,6 +804,17 @@ static int rkmpp_encode_init(AVCodecContext *avctx)
+         return AVERROR(ENOSYS);
+     }
+ 
++    pix_fmt = avctx->pix_fmt == AV_PIX_FMT_DRM_PRIME ? avctx->sw_pix_fmt : avctx->pix_fmt;
++    mpp_fmt = rkmpp_get_mpp_fmt(pix_fmt) & MPP_FRAME_FMT_MASK;
++
++    if (mpp_fmt == MPP_FMT_BUTT) {
++        av_log(avctx, AV_LOG_ERROR, "Unsupported input pixel format '%s'\n",
++               av_get_pix_fmt_name(pix_fmt));
++        return AVERROR(ENOSYS);
++    }
++    r->pix_fmt = pix_fmt;
++    r->mpp_fmt = mpp_fmt;
++
+     if ((ret = mpp_check_support_format(MPP_CTX_ENC, coding_type)) != MPP_OK) {
+         av_log(avctx, AV_LOG_ERROR, "MPP doesn't support encoding codec '%s' (%d)\n",
+                avcodec_get_name(avctx->codec_id), avctx->codec_id);
+@@ -888,17 +901,6 @@ static int rkmpp_encode_init(AVCodecContext *avctx)
+         mpp_packet_deinit(&mpp_pkt);
+     }
+ 
+-    pix_fmt = avctx->pix_fmt == AV_PIX_FMT_DRM_PRIME ? avctx->sw_pix_fmt : avctx->pix_fmt;
+-    mpp_fmt = rkmpp_get_mpp_fmt(pix_fmt) & MPP_FRAME_FMT_MASK;
+-
+-    if (mpp_fmt == MPP_FMT_BUTT) {
+-        av_log(avctx, AV_LOG_ERROR, "Unsupported input pixel format '%s'\n",
+-               av_get_pix_fmt_name(pix_fmt));
+-        return AVERROR(ENOSYS);
+-    }
+-    r->pix_fmt = pix_fmt;
+-    r->mpp_fmt = mpp_fmt;
+-
+     if (avctx->pix_fmt == AV_PIX_FMT_DRM_PRIME)
+         return 0;
+ 
+diff --git a/libavcodec/rkmppenc.h b/libavcodec/rkmppenc.h
+index 212a085bf8..f0ea69f9ff 100644
+--- a/libavcodec/rkmppenc.h
++++ b/libavcodec/rkmppenc.h
+@@ -169,6 +169,7 @@ static const AVOption hevc_options[] = {
+ };
+ 
+ static const enum AVPixelFormat rkmpp_enc_pix_fmts[] = {
++    AV_PIX_FMT_GRAY8,
+     AV_PIX_FMT_YUV420P,
+     AV_PIX_FMT_YUV422P,
+     AV_PIX_FMT_YUV444P,
+-- 
+2.25.1
+

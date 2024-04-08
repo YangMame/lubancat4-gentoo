@@ -1,0 +1,50 @@
+From b4dc271133a72e35e287804a3498986b76dfaff1 Mon Sep 17 00:00:00 2001
+From: nyanmisaka <nst799610810@gmail.com>
+Date: Wed, 27 Dec 2023 22:51:23 +0800
+Subject: [PATCH 02/37] lavu: add NV15 format support
+
+Signed-off-by: nyanmisaka <nst799610810@gmail.com>
+---
+ libavutil/pixdesc.c | 12 ++++++++++++
+ libavutil/pixfmt.h  |  2 ++
+ 2 files changed, 14 insertions(+)
+
+diff --git a/libavutil/pixdesc.c b/libavutil/pixdesc.c
+index 62a2ae08d9..9ff355eedb 100644
+--- a/libavutil/pixdesc.c
++++ b/libavutil/pixdesc.c
+@@ -2717,6 +2717,18 @@ static const AVPixFmtDescriptor av_pix_fmt_descriptors[AV_PIX_FMT_NB] = {
+         .flags = AV_PIX_FMT_FLAG_RGB | AV_PIX_FMT_FLAG_FLOAT |
+                  AV_PIX_FMT_FLAG_ALPHA,
+     },
++    [AV_PIX_FMT_NV15] = {
++        .name = "nv15",
++        .nb_components = 3,
++        .log2_chroma_w = 1,
++        .log2_chroma_h = 1,
++        .comp = {
++            { 0, 10,  0, 0, 10 },      /* Y */
++            { 1, 20,  0, 0, 10 },      /* U */
++            { 1, 20, 10, 0, 10 },      /* V */
++        },
++        .flags = AV_PIX_FMT_FLAG_PLANAR | AV_PIX_FMT_FLAG_BITSTREAM,
++    },
+ };
+ 
+ static const char * const color_range_names[] = {
+diff --git a/libavutil/pixfmt.h b/libavutil/pixfmt.h
+index 37c2c79e01..75828d73bc 100644
+--- a/libavutil/pixfmt.h
++++ b/libavutil/pixfmt.h
+@@ -420,6 +420,8 @@ enum AVPixelFormat {
+     AV_PIX_FMT_RGBAF32BE,   ///< IEEE-754 single precision packed RGBA 32:32:32:32, 128bpp, RGBARGBA..., big-endian
+     AV_PIX_FMT_RGBAF32LE,   ///< IEEE-754 single precision packed RGBA 32:32:32:32, 128bpp, RGBARGBA..., little-endian
+ 
++    AV_PIX_FMT_NV15,        ///< like P010, but has no zero padding bits, 15bpp, little-endian
++
+     AV_PIX_FMT_NB         ///< number of pixel formats, DO NOT USE THIS if you want to link with shared libav* because the number of formats might differ between versions
+ };
+ 
+-- 
+2.25.1
+

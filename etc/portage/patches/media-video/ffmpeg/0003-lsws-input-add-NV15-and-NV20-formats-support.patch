@@ -1,0 +1,148 @@
+From 420da6dd87e4d205bcb9d522febc02adc61bca0a Mon Sep 17 00:00:00 2001
+From: nyanmisaka <nst799610810@gmail.com>
+Date: Wed, 27 Dec 2023 22:52:46 +0800
+Subject: [PATCH 03/37] lsws/input: add NV15 and NV20 formats support
+
+Signed-off-by: nyanmisaka <nst799610810@gmail.com>
+---
+ libswscale/input.c               | 41 ++++++++++++++++++++++++++++++++
+ libswscale/utils.c               |  2 ++
+ tests/ref/fate/imgutils          |  1 +
+ tests/ref/fate/sws-pixdesc-query |  5 ++++
+ 4 files changed, 49 insertions(+)
+
+diff --git a/libswscale/input.c b/libswscale/input.c
+index d5676062a2..944e6eb91a 100644
+--- a/libswscale/input.c
++++ b/libswscale/input.c
+@@ -793,6 +793,39 @@ static void nv21ToUV_c(uint8_t *dstU, uint8_t *dstV,
+     nvXXtoUV_c(dstV, dstU, src1, width);
+ }
+ 
++static av_always_inline void nv15_20ToYUV_c(uint16_t *dst, const uint8_t *src,
++                                            int dst_pos, int src_pos)
++{
++    int shift = (src_pos << 1) & 7;
++    src_pos = (src_pos * 10) >> 3;
++    AV_WN16(dst + dst_pos,
++            ((AV_RL16(src + src_pos) >> shift) |
++             (AV_RL16(src + src_pos + 1) << (8 - shift))) & 0x3FF);
++}
++
++static void nv15_20ToY_c(uint8_t *_dst, const uint8_t *_src, const uint8_t *unused1,
++                         const uint8_t *unused2, int width, uint32_t *unused, void *opq)
++{
++    int i;
++    const uint8_t *src = (const uint8_t *)_src;
++    uint16_t *dst      = (uint16_t *)_dst;
++    for (i = 0; i < width; i++)
++        nv15_20ToYUV_c(dst, src, i, i);
++}
++
++static void nv15_20ToUV_c(uint8_t *_dstU, uint8_t *_dstV,
++                          const uint8_t *unused0, const uint8_t *_src1, const uint8_t *_src2,
++                          int width, uint32_t *unused, void *opq)
++{
++    int i;
++    const uint8_t *src1 = (const uint8_t *)_src1;
++    uint16_t *dstU      = (uint16_t *)_dstU, *dstV = (uint16_t *)_dstV;
++    for (i = 0; i < width; i++) {
++        nv15_20ToYUV_c(dstU, src1, i, 2 * i);
++        nv15_20ToYUV_c(dstV, src1, i, 2 * i + 1);
++    }
++}
++
+ #define p01x_uv_wrapper(bits, shift) \
+     static void p0 ## bits ## LEToUV_c(uint8_t *dstU, uint8_t *dstV,     \
+                                        const uint8_t *unused0,           \
+@@ -1441,6 +1474,10 @@ av_cold void ff_sws_init_input_funcs(SwsContext *c)
+     case AV_PIX_FMT_XV36LE:
+         c->chrToYV12 = read_xv36le_UV_c;
+         break;
++    case AV_PIX_FMT_NV15:
++    case AV_PIX_FMT_NV20:
++        c->chrToYV12 = nv15_20ToUV_c;
++        break;
+     case AV_PIX_FMT_P010LE:
+     case AV_PIX_FMT_P210LE:
+     case AV_PIX_FMT_P410LE:
+@@ -1933,6 +1970,10 @@ av_cold void ff_sws_init_input_funcs(SwsContext *c)
+     case AV_PIX_FMT_BGRA64LE:
+         c->lumToYV12 = bgr64LEToY_c;
+         break;
++    case AV_PIX_FMT_NV15:
++    case AV_PIX_FMT_NV20:
++        c->lumToYV12 = nv15_20ToY_c;
++        break;
+     case AV_PIX_FMT_P010LE:
+     case AV_PIX_FMT_P210LE:
+     case AV_PIX_FMT_P410LE:
+diff --git a/libswscale/utils.c b/libswscale/utils.c
+index 925c536bf1..fa837e24da 100644
+--- a/libswscale/utils.c
++++ b/libswscale/utils.c
+@@ -228,6 +228,8 @@ static const FormatEntry format_entries[] = {
+     [AV_PIX_FMT_XYZ12BE]     = { 1, 1, 1 },
+     [AV_PIX_FMT_XYZ12LE]     = { 1, 1, 1 },
+     [AV_PIX_FMT_AYUV64LE]    = { 1, 1},
++    [AV_PIX_FMT_NV15]        = { 1, 0 },
++    [AV_PIX_FMT_NV20]        = { 1, 0 },
+     [AV_PIX_FMT_P010LE]      = { 1, 1 },
+     [AV_PIX_FMT_P010BE]      = { 1, 1 },
+     [AV_PIX_FMT_P012LE]      = { 1, 1 },
+diff --git a/tests/ref/fate/imgutils b/tests/ref/fate/imgutils
+index e79ec7e4b3..fe0fab7267 100644
+--- a/tests/ref/fate/imgutils
++++ b/tests/ref/fate/imgutils
+@@ -262,3 +262,4 @@ rgbf32be        planes: 1, linesizes: 768   0   0   0, plane_sizes: 36864     0
+ rgbf32le        planes: 1, linesizes: 768   0   0   0, plane_sizes: 36864     0     0     0, plane_offsets:     0     0     0, total_size: 36864
+ rgbaf32be       planes: 1, linesizes: 1024   0   0   0, plane_sizes: 49152     0     0     0, plane_offsets:     0     0     0, total_size: 49152
+ rgbaf32le       planes: 1, linesizes: 1024   0   0   0, plane_sizes: 49152     0     0     0, plane_offsets:     0     0     0, total_size: 49152
++nv15            planes: 2, linesizes:  80  80   0   0, plane_sizes:  3840  1920     0     0, plane_offsets:  3840     0     0, total_size: 5760
+diff --git a/tests/ref/fate/sws-pixdesc-query b/tests/ref/fate/sws-pixdesc-query
+index 14156a383c..8584f45450 100644
+--- a/tests/ref/fate/sws-pixdesc-query
++++ b/tests/ref/fate/sws-pixdesc-query
+@@ -59,6 +59,7 @@ isNBPS:
+   gray14le
+   gray9be
+   gray9le
++  nv15
+   nv20be
+   nv20le
+   p010be
+@@ -212,6 +213,7 @@ isYUV:
+   ayuv64be
+   ayuv64le
+   nv12
++  nv15
+   nv16
+   nv20be
+   nv20le
+@@ -324,6 +326,7 @@ isYUV:
+ 
+ isPlanarYUV:
+   nv12
++  nv15
+   nv16
+   nv20be
+   nv20le
+@@ -417,6 +420,7 @@ isPlanarYUV:
+ 
+ isSemiPlanarYUV:
+   nv12
++  nv15
+   nv16
+   nv20be
+   nv20le
+@@ -839,6 +843,7 @@ Planar:
+   gbrpf32be
+   gbrpf32le
+   nv12
++  nv15
+   nv16
+   nv20be
+   nv20le
+-- 
+2.25.1
+

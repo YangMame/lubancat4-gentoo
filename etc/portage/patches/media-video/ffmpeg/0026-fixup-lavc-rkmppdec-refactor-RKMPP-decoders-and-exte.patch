@@ -1,0 +1,81 @@
+From 84fb313dd76b14926661be4c86d0773bed2ed383 Mon Sep 17 00:00:00 2001
+From: nyanmisaka <nst799610810@gmail.com>
+Date: Tue, 23 Jan 2024 16:13:32 +0800
+Subject: [PATCH 26/37] fixup! lavc/rkmppdec: refactor RKMPP decoders and
+ extend codecs
+
+Fix the latency issue in decoder output.
+
+Signed-off-by: nyanmisaka <nst799610810@gmail.com>
+---
+ libavcodec/rkmppdec.c | 15 +++++++++++++--
+ libavcodec/rkmppdec.h |  2 ++
+ 2 files changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/libavcodec/rkmppdec.c b/libavcodec/rkmppdec.c
+index 32dd8d1dce..ac2cccbd68 100644
+--- a/libavcodec/rkmppdec.c
++++ b/libavcodec/rkmppdec.c
+@@ -90,6 +90,8 @@ static av_cold int rkmpp_decode_close(AVCodecContext *avctx)
+     r->eof = 0;
+     r->info_change = 0;
+     r->errinfo_cnt = 0;
++    r->queue_cnt = 0;
++    r->queue_size = 0;
+ 
+     if (r->mapi) {
+         r->mapi->reset(r->mctx);
+@@ -824,12 +826,17 @@ send_pkt:
+         if (ret_send == 0) {
+             /* send successful, continue until decoder input buffer is full */
+             av_packet_unref(pkt);
+-            return AVERROR(EAGAIN);
++            r->queue_cnt++;
++            if (r->queue_size <= 0 ||
++                r->queue_cnt < r->queue_size)
++                return AVERROR(EAGAIN);
+         } else if (ret_send < 0 && ret_send != AVERROR(EAGAIN)) {
+             /* something went wrong, raise error */
+             av_log(avctx, AV_LOG_ERROR, "Decoder failed to send data: %d", ret_send);
+             return ret_send;
+-        }
++        } else
++            /* input buffer is full, estimate queue size */
++            r->queue_size = FFMAX(r->queue_cnt, r->queue_size);
+     }
+ 
+     if (r->eof)
+@@ -852,6 +859,8 @@ get_frame:
+         goto send_pkt;
+     else if (ret_get < 0 && ret_get != AVERROR(EAGAIN))
+         av_log(avctx, AV_LOG_ERROR, "Decoder failed to get frame: %d\n", ret_get);
++    else
++        r->queue_cnt--;
+ 
+     return ret_get;
+ }
+@@ -867,6 +876,8 @@ static void rkmpp_decode_flush(AVCodecContext *avctx)
+         r->eof = 0;
+         r->info_change = 0;
+         r->errinfo_cnt = 0;
++        r->queue_cnt = 0;
++        r->queue_size = 0;
+ 
+         av_packet_unref(&r->last_pkt);
+         av_frame_unref(&r->last_frame);
+diff --git a/libavcodec/rkmppdec.h b/libavcodec/rkmppdec.h
+index 6ba0e46425..f2749f21f8 100644
+--- a/libavcodec/rkmppdec.h
++++ b/libavcodec/rkmppdec.h
+@@ -59,6 +59,8 @@ typedef struct RKMPPDecContext {
+     int            eof;
+     int            info_change;
+     int            errinfo_cnt;
++    int            queue_cnt;
++    int            queue_size;
+ 
+     int            deint;
+     int            afbc;
+-- 
+2.25.1
+

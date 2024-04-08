@@ -1,0 +1,32 @@
+From f9fd3d3ede4e2d0b1679d97c0b5666d66f017d26 Mon Sep 17 00:00:00 2001
+From: nyanmisaka <nst799610810@gmail.com>
+Date: Tue, 23 Jan 2024 16:14:52 +0800
+Subject: [PATCH 27/37] fixup! lavf/rkrga: add RKRGA scale, vpp and overlay
+ filter
+
+Fix the issue that some PGSSUB subtitle have incorrect color.
+
+Signed-off-by: nyanmisaka <nst799610810@gmail.com>
+---
+ libavfilter/rkrga_common.c | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/libavfilter/rkrga_common.c b/libavfilter/rkrga_common.c
+index 813b476853..6be7edd342 100644
+--- a/libavfilter/rkrga_common.c
++++ b/libavfilter/rkrga_common.c
+@@ -955,10 +955,8 @@ av_cold int ff_rkrga_init(AVFilterContext *avctx, RKRGAParam *param)
+             r->in_rga_frame_infos[0].blend_mode = premultiplied_alpha ? (0x4 | (1 << 12)) : 0x4;
+             r->in_rga_frame_infos[0].blend_mode |= (param->in_global_alpha & 0xff) << 16; /* fg_global_alpha */
+             r->in_rga_frame_infos[0].blend_mode |= 0xff << 24;                            /* bg_global_alpha */
+-        } else {
++        } else
+             r->in_rga_frame_infos[0].blend_mode = premultiplied_alpha ? 0x504 : 0x501;
+-            r->in_rga_frame_infos[0].blend_mode |= (0xff << 16) | (0xff << 24);
+-        }
+ 
+         r->in_rga_frame_infos[1].overlay_x = FFMAX(param->overlay_x, 0);
+         r->in_rga_frame_infos[1].overlay_y = FFMAX(param->overlay_y, 0);
+-- 
+2.25.1
+

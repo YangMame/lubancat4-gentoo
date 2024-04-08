@@ -1,0 +1,67 @@
+From bfecf2650e565375762389c38badc3c039f4f6b3 Mon Sep 17 00:00:00 2001
+From: nyanmisaka <nst799610810@gmail.com>
+Date: Mon, 5 Feb 2024 00:31:57 +0800
+Subject: [PATCH 37/37] fixup! lavc/rkmppdec: refactor RKMPP decoders and
+ extend codecs
+
+EOS frame may contain valid data. Check frame buf to determine it.
+
+```
+[hevc_rkmpp @ 0xaaab1462eb20] Received a 'EOS' frame
+[hevc_rkmpp @ 0xaaab1462eb20] Received a frame
+[hevc_rkmpp @ 0xaaab1462eb20] Received a 'EOS' frame
+[hevc_rkmpp @ 0xaaab1462eb20] Decoder is at EOF
+[vist#0:0/hevc @ 0xaaab1463e380] Decoder returned EOF, finishing
+[vist#0:0/hevc @ 0xaaab1463e380] Terminating decoder thread
+```
+
+Signed-off-by: nyanmisaka <nst799610810@gmail.com>
+---
+ libavcodec/rkmppdec.c | 10 ++++++----
+ libavcodec/rkmppdec.h |  2 --
+ 2 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/libavcodec/rkmppdec.c b/libavcodec/rkmppdec.c
+index 2372c15b57..3eaee055dd 100644
+--- a/libavcodec/rkmppdec.c
++++ b/libavcodec/rkmppdec.c
+@@ -663,9 +663,12 @@ static int rkmpp_get_frame(AVCodecContext *avctx, AVFrame *frame, int timeout)
+     }
+     if (mpp_frame_get_eos(mpp_frame)) {
+         av_log(avctx, AV_LOG_DEBUG, "Received a 'EOS' frame\n");
+-        r->eof = 1;
+-        ret = AVERROR_EOF;
+-        goto exit;
++        /* EOS frame may contain valid data */
++        if (!mpp_frame_get_buffer(mpp_frame)) {
++            r->eof = 1;
++            ret = AVERROR_EOF;
++            goto exit;
++        }
+     }
+     if (mpp_frame_get_discard(mpp_frame)) {
+         av_log(avctx, AV_LOG_DEBUG, "Received a 'discard' frame\n");
+@@ -927,7 +930,6 @@ static void rkmpp_decode_flush(AVCodecContext *avctx)
+         r->queue_size = 0;
+ 
+         av_packet_unref(&r->last_pkt);
+-        av_frame_unref(&r->last_frame);
+     } else
+         av_log(avctx, AV_LOG_ERROR, "Failed to reset MPP context: %d\n", ret);
+ }
+diff --git a/libavcodec/rkmppdec.h b/libavcodec/rkmppdec.h
+index f2749f21f8..6a4cd6bf68 100644
+--- a/libavcodec/rkmppdec.h
++++ b/libavcodec/rkmppdec.h
+@@ -54,8 +54,6 @@ typedef struct RKMPPDecContext {
+     AVBufferRef   *hwframe;
+ 
+     AVPacket       last_pkt;
+-    AVFrame        last_frame;
+-
+     int            eof;
+     int            info_change;
+     int            errinfo_cnt;
+-- 
+2.25.1
+

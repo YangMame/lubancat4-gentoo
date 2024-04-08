@@ -1,0 +1,41 @@
+From 5f43d7f948f8141f885df76d904d1a34910156a4 Mon Sep 17 00:00:00 2001
+From: nyanmisaka <nst799610810@gmail.com>
+Date: Wed, 27 Dec 2023 22:45:58 +0800
+Subject: [PATCH 05/37] lavu/hwcontext_drm: preparations for RKMPP hwcontext
+
+Signed-off-by: nyanmisaka <nst799610810@gmail.com>
+---
+ libavutil/hwcontext_drm.h | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/libavutil/hwcontext_drm.h b/libavutil/hwcontext_drm.h
+index 42709f215e..bc50e427f6 100644
+--- a/libavutil/hwcontext_drm.h
++++ b/libavutil/hwcontext_drm.h
+@@ -50,6 +50,12 @@ typedef struct AVDRMObjectDescriptor {
+      * DRM PRIME fd for the object.
+      */
+     int fd;
++    /**
++     * DRM PRIME mapped virtual ptr for above fd.
++     *
++     * The content of this buffer must be readonly when acting decoder's out buffer.
++     */
++    void *ptr;
+     /**
+      * Total size of the object.
+      *
+@@ -63,6 +69,10 @@ typedef struct AVDRMObjectDescriptor {
+      * DRM_FORMAT_MOD_INVALID.
+      */
+     uint64_t format_modifier;
++    /**
++     * User opaque for the object.
++     */
++    void *opaque;
+ } AVDRMObjectDescriptor;
+ 
+ /**
+-- 
+2.25.1
+

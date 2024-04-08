@@ -1,0 +1,45 @@
+From c68fb83d71d5ede7e30e89afcd905e3095b9b394 Mon Sep 17 00:00:00 2001
+From: nyanmisaka <nst799610810@gmail.com>
+Date: Fri, 19 Jan 2024 20:39:26 +0800
+Subject: [PATCH 23/37] fixup! lavf/rkrga: add RKRGA scale, vpp and overlay
+ filter
+
+disable `force_{original_aspect_ratio,divisible_by}` options for
+the vpp_rkrga filter and leave it to scale_rkrga.
+
+Signed-off-by: nyanmisaka <nst799610810@gmail.com>
+---
+ libavfilter/vf_vpp_rkrga.c | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/libavfilter/vf_vpp_rkrga.c b/libavfilter/vf_vpp_rkrga.c
+index 3c9c2e1c21..c6ff6cc83e 100644
+--- a/libavfilter/vf_vpp_rkrga.c
++++ b/libavfilter/vf_vpp_rkrga.c
+@@ -371,11 +371,6 @@ static av_cold void rgavpp_uninit(AVFilterContext *ctx)
+ #define FLAGS (AV_OPT_FLAG_FILTERING_PARAM | AV_OPT_FLAG_VIDEO_PARAM)
+ 
+ #define RKRGA_VPP_COMMON_OPTS \
+-    { "force_original_aspect_ratio", "Decrease or increase w/h if necessary to keep the original AR", OFFSET(force_original_aspect_ratio), AV_OPT_TYPE_INT, { .i64 = 1 }, 0, 2, FLAGS, "force_oar" }, \
+-        { "disable",  NULL, 0, AV_OPT_TYPE_CONST, { .i64 = 0 }, 0, 0, FLAGS, "force_oar" }, \
+-        { "decrease", NULL, 0, AV_OPT_TYPE_CONST, { .i64 = 1 }, 0, 0, FLAGS, "force_oar" }, \
+-        { "increase", NULL, 0, AV_OPT_TYPE_CONST, { .i64 = 2 }, 0, 0, FLAGS, "force_oar" }, \
+-    { "force_divisible_by", "Enforce that the output resolution is divisible by a defined integer when force_original_aspect_ratio is used", OFFSET(force_divisible_by), AV_OPT_TYPE_INT, { .i64 = 2 }, 1, 256, FLAGS }, \
+     { "core", "Set multicore RGA scheduler core [use with caution]", OFFSET(rga.scheduler_core), AV_OPT_TYPE_FLAGS, { .i64 = 0 }, 0, INT_MAX, FLAGS, "core" }, \
+         { "default",    NULL, 0, AV_OPT_TYPE_CONST, { .i64 = 0 }, 0, 0, FLAGS, "core" }, \
+         { "rga3_core0", NULL, 0, AV_OPT_TYPE_CONST, { .i64 = 1 }, 0, 0, FLAGS, "core" }, /* RGA3_SCHEDULER_CORE0 */ \
+@@ -405,6 +400,11 @@ static const AVOption rgascale_options[] = {
+     { "w",  "Output video width",  OFFSET(ow), AV_OPT_TYPE_STRING, { .str = "iw" }, 0, 0, FLAGS },
+     { "h",  "Output video height", OFFSET(oh), AV_OPT_TYPE_STRING, { .str = "ih" }, 0, 0, FLAGS },
+     { "format", "Output video pixel format", OFFSET(format), AV_OPT_TYPE_PIXEL_FMT, { .i64 = AV_PIX_FMT_NONE }, INT_MIN, INT_MAX, .flags = FLAGS },
++    { "force_original_aspect_ratio", "Decrease or increase w/h if necessary to keep the original AR", OFFSET(force_original_aspect_ratio), AV_OPT_TYPE_INT, { .i64 = 1 }, 0, 2, FLAGS, "force_oar" }, \
++        { "disable",  NULL, 0, AV_OPT_TYPE_CONST, { .i64 = 0 }, 0, 0, FLAGS, "force_oar" }, \
++        { "decrease", NULL, 0, AV_OPT_TYPE_CONST, { .i64 = 1 }, 0, 0, FLAGS, "force_oar" }, \
++        { "increase", NULL, 0, AV_OPT_TYPE_CONST, { .i64 = 2 }, 0, 0, FLAGS, "force_oar" }, \
++    { "force_divisible_by", "Enforce that the output resolution is divisible by a defined integer when force_original_aspect_ratio is used", OFFSET(force_divisible_by), AV_OPT_TYPE_INT, { .i64 = 2 }, 1, 256, FLAGS }, \
+     RKRGA_VPP_COMMON_OPTS
+     { NULL },
+ };
+-- 
+2.25.1
+

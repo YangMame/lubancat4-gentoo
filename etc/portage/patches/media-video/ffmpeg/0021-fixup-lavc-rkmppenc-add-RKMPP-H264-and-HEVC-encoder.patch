@@ -1,0 +1,48 @@
+From 22e9763f0d442a17853b22cf7aaf14a995652105 Mon Sep 17 00:00:00 2001
+From: nyanmisaka <nst799610810@gmail.com>
+Date: Mon, 15 Jan 2024 22:25:58 +0800
+Subject: [PATCH 21/37] fixup! lavc/rkmppenc: add RKMPP H264 and HEVC encoder
+
+Improve RKMPP HWdevice selection.
+
+Signed-off-by: nyanmisaka <nst799610810@gmail.com>
+---
+ libavcodec/rkmppenc.c | 14 ++++++++------
+ 1 file changed, 8 insertions(+), 6 deletions(-)
+
+diff --git a/libavcodec/rkmppenc.c b/libavcodec/rkmppenc.c
+index 9ea6e0db43..c1eb847517 100644
+--- a/libavcodec/rkmppenc.c
++++ b/libavcodec/rkmppenc.c
+@@ -906,20 +906,22 @@ static int rkmpp_encode_init(AVCodecContext *avctx)
+ 
+     if (avctx->hw_frames_ctx || avctx->hw_device_ctx) {
+         AVBufferRef *device_ref = avctx->hw_device_ctx;
++        AVHWDeviceContext *device_ctx = NULL;
+         AVHWFramesContext *hwfc = NULL;
+ 
+         if (avctx->hw_frames_ctx) {
+             hwfc = (AVHWFramesContext *)avctx->hw_frames_ctx->data;
+             device_ref = hwfc->device_ref;
+         }
++        device_ctx = (AVHWDeviceContext *)device_ref->data;
+ 
+-        r->hwdevice = av_buffer_ref(device_ref);
+-        if (!r->hwdevice) {
+-            ret = AVERROR(ENOMEM);
+-            goto fail;
++        if (device_ctx && device_ctx->type == AV_HWDEVICE_TYPE_RKMPP) {
++            r->hwdevice = av_buffer_ref(device_ref);
++            if (r->hwdevice)
++                av_log(avctx, AV_LOG_VERBOSE, "Picked up an existing RKMPP hardware device\n");
+         }
+-        av_log(avctx, AV_LOG_VERBOSE, "Picked up an existing RKMPP hardware device\n");
+-    } else {
++    }
++    if (!r->hwdevice) {
+         if ((ret = av_hwdevice_ctx_create(&r->hwdevice,
+                                           AV_HWDEVICE_TYPE_RKMPP,
+                                           NULL, NULL, 0)) < 0) {
+-- 
+2.25.1
+

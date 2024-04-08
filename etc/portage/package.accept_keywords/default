@@ -1,0 +1,14 @@
+media-libs/gl4es **
+dev-qt/qt-creator *
+net-misc/modem-manager-gui **
+app-backup/btrfs-assistant *
+app-portage/emlop **
+virtual/opencl **
+sys-apps/earlyoom *
+net-proxy/clash-nyanpasu *
+x11-themes/adapta-gtk-theme *
+gnome-extra/gnome-shell-extension-gsconnect *
+gnome-extra/gnome-shell-extension-desktop-icons-ng *
+dev-libs/lunar-calendar *
+dev-libs/lunar-date *
+app-benchmarks/glmark2 *

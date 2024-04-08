@@ -1,0 +1,25 @@
+From 3109652a9bce3e2d887308f6066a35dac7f8c335 Mon Sep 17 00:00:00 2001
+From: rigaya <rigaya34589@live.jp>
+Date: Fri, 7 Apr 2023 22:47:10 +0900
+Subject: [PATCH 11/37] avdevice/v4l2: add nv16, nv24 support
+
+---
+ libavdevice/v4l2-common.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/libavdevice/v4l2-common.c b/libavdevice/v4l2-common.c
+index b5b4448a31..1926179fdc 100644
+--- a/libavdevice/v4l2-common.c
++++ b/libavdevice/v4l2-common.c
+@@ -49,6 +49,8 @@ const struct fmt_map ff_fmt_conversion_table[] = {
+ #ifdef V4L2_PIX_FMT_Z16
+     { AV_PIX_FMT_GRAY16LE,AV_CODEC_ID_RAWVIDEO, V4L2_PIX_FMT_Z16     },
+ #endif
++    { AV_PIX_FMT_NV24,    AV_CODEC_ID_RAWVIDEO, V4L2_PIX_FMT_NV24    },
++    { AV_PIX_FMT_NV16,    AV_CODEC_ID_RAWVIDEO, V4L2_PIX_FMT_NV16    },
+     { AV_PIX_FMT_NV12,    AV_CODEC_ID_RAWVIDEO, V4L2_PIX_FMT_NV12    },
+     { AV_PIX_FMT_NONE,    AV_CODEC_ID_MJPEG,    V4L2_PIX_FMT_MJPEG   },
+     { AV_PIX_FMT_NONE,    AV_CODEC_ID_MJPEG,    V4L2_PIX_FMT_JPEG    },
+-- 
+2.25.1
+

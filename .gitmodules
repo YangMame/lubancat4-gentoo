@@ -1,0 +1,3 @@
+[submodule "usr/src/linux-rockchip"]
+	path = usr/src/linux-rockchip
+	url = git@github.com:YangMame/linux-rockchip.git

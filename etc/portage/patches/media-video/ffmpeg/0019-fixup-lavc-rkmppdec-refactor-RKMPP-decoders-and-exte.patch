@@ -1,0 +1,57 @@
+From 8b212392bc6b9d35133bbe63f79e0a2ec89b2fad Mon Sep 17 00:00:00 2001
+From: nyanmisaka <nst799610810@gmail.com>
+Date: Fri, 12 Jan 2024 18:24:50 +0800
+Subject: [PATCH 19/37] fixup! lavc/rkmppdec: refactor RKMPP decoders and
+ extend codecs
+
+EAGAIN should never happen during draining.
+
+Signed-off-by: nyanmisaka <nst799610810@gmail.com>
+---
+ libavcodec/rkmppdec.c | 8 ++++++++
+ libavcodec/rkmppdec.h | 3 ++-
+ 2 files changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/libavcodec/rkmppdec.c b/libavcodec/rkmppdec.c
+index 6b4afc00c0..a5670b15df 100644
+--- a/libavcodec/rkmppdec.c
++++ b/libavcodec/rkmppdec.c
+@@ -785,6 +785,7 @@ static int rkmpp_decode_receive_frame(AVCodecContext *avctx, AVFrame *frame)
+     AVCodecInternal *avci = avctx->internal;
+     RKMPPDecContext *r = avctx->priv_data;
+     AVPacket *pkt = &r->last_pkt;
++    int retry_cnt = 0;
+     int ret_send, ret_get;
+ 
+     if (r->info_change && !r->buf_group)
+@@ -826,6 +827,13 @@ get_frame:
+     ret_get = rkmpp_get_frame(avctx, frame, 100);
+     if (ret_get == AVERROR_EOF)
+         av_log(avctx, AV_LOG_DEBUG, "Decoder is at EOF\n");
++    /* EAGAIN should never happen during draining */
++    else if (avci->draining && ret_get == AVERROR(EAGAIN)) {
++        if (retry_cnt++ < MAX_RETRY_COUNT)
++            goto get_frame;
++        else
++            ret_get = AVERROR_BUG;
++    }
+     /* this is not likely but lets handle it in case synchronization issues of MPP */
+     else if (ret_get == AVERROR(EAGAIN) && ret_send == AVERROR(EAGAIN))
+         goto send_pkt;
+diff --git a/libavcodec/rkmppdec.h b/libavcodec/rkmppdec.h
+index 7539bedf29..421a7814ad 100644
+--- a/libavcodec/rkmppdec.h
++++ b/libavcodec/rkmppdec.h
+@@ -40,7 +40,8 @@
+ #include "libavutil/opt.h"
+ #include "libavutil/pixdesc.h"
+ 
+-#define MAX_ERRINFO_COUNT 1000
++#define MAX_ERRINFO_COUNT 100
++#define MAX_RETRY_COUNT   100
+ 
+ typedef struct RKMPPDecContext {
+     AVClass       *class;
+-- 
+2.25.1
+

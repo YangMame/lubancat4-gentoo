@@ -1,0 +1,2 @@
+dev-lang/php ldap gmp ftp bcmath exif argon2 sodium xslt imap pdo xmlwriter sqlite intl gd zip curl truetype xmlreader
+media-gfx/imagemagick -openmp

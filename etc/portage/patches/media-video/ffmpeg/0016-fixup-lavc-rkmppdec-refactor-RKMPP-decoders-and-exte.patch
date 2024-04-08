@@ -1,0 +1,26 @@
+From 4b325db8e99d0e2de84db39b8fa7f1775be1c778 Mon Sep 17 00:00:00 2001
+From: nyanmisaka <nst799610810@gmail.com>
+Date: Sun, 31 Dec 2023 19:12:48 +0800
+Subject: [PATCH 16/37] fixup! lavc/rkmppdec: refactor RKMPP decoders and
+ extend codecs
+
+Signed-off-by: nyanmisaka <nst799610810@gmail.com>
+---
+ libavcodec/rkmppdec.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/libavcodec/rkmppdec.c b/libavcodec/rkmppdec.c
+index 897f4a757c..e18a9ccfc8 100644
+--- a/libavcodec/rkmppdec.c
++++ b/libavcodec/rkmppdec.c
+@@ -121,6 +121,7 @@ static av_cold int rkmpp_decode_init(AVCodecContext *avctx)
+ 
+     switch (avctx->pix_fmt) {
+     case AV_PIX_FMT_YUV420P:
++    case AV_PIX_FMT_YUVJ420P:
+         is_fmt_supported = 1;
+         break;
+     case AV_PIX_FMT_YUV420P10:
+-- 
+2.25.1
+

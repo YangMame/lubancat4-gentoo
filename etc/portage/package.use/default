@@ -1,0 +1,15 @@
+media-video/ffmpeg vpx opus libass
+gnome-base/gnome-extra-apps -share -games
+
+# Gnome remote desktop
+>=net-misc/freerdp-2.11.5-r10:2 server
+>=x11-wm/mutter-45.5 screencast
+
+#Fcitx
+dev-libs/leveldb -tcmalloc
+>=app-i18n/librime-1.10.0 octagram
+
+# frefox
+>=media-libs/libvpx-1.14.0 postproc
+>=x11-base/xorg-server-21.1.11 xvfb
+
